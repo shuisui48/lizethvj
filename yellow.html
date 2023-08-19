@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lluvia de Elementos</title>
+</head>
+<style>
+/* Nuevo estilo con lluvia de elementos parpadeantes */
+body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #0b1522; /* Fondo oscuro */
+    overflow: hidden; /* Evitar barras de desplazamiento */
+}
+
+.elements-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: -1;
+    font-size: 24px;
+    font-weight: bold;
+    color: yellow;
+}
+
+.element {
+    position: absolute;
+    animation: fall 3s linear infinite, blink 1s infinite;
+    transform-origin: center;
+}
+
+@keyframes fall {
+    0% {
+        transform: translateY(-10%);
+    }
+    100% {
+        transform: translateY(100vh);
+    }
+}
+
+@keyframes blink {
+    0%, 100% {
+        opacity: 0;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+/* Video */
+.video-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+}
+
+video {
+    max-width: 100%;
+    max-height: 100%;
+    z-index: 1;
+}
+
+.button-container {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1;
+}
+
+.button {
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: yellow;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-right: 10px;
+}
+
+.message-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 2;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.message-container {
+    background-color: yellow;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+}
+
+.message {
+    font-size: 36px;
+    color: red;
+    margin-bottom: 20px;
+    animation: blink 1s infinite;
+}
+
+.sub-message {
+    font-size: 20px;
+    color: black;
+    animation: appear 5s;
+    opacity: 0;
+    max-width: 80%;
+    margin: 0 auto;
+    line-height: 1.5;
+}
+
+.sub-message.fade-in {
+    animation: appear 5s;
+    opacity: 1;
+}
+
+.close-button {
+    background-color: #f00;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+@keyframes appear {
+    0% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>
+<body>
+    <div class="elements-container" id="elements-container">
+    </div>
+
+    <!-- Botón para alternar entre los efectos y controlar el video -->
+    <div class="button-container">
+        <button class="button" id="toggleEffectsButton">Alternar</button>
+        <button class="button" id="startVideoButton">Iniciar Video</button>
+        <button class="button" id="changeVideoButton">Cambiar Video</button>
+        <button class="button" id="chicaCocodriloButton">Chica Cocodrilo</button>
+        <button class="button" id="llantoButton">Llanto</button>
+    </div>
+
+    <!-- Agregar el video -->
+    <div class="video-container">
+        <video controls width="320" height="240" id="video">
+            <source src="yellow.mp4" type="video/mp4">
+            Tu navegador no soporta el elemento de video.
+        </video>
+    </div>
+
+    <!-- Ventana emergente con mensaje -->
+    <div class="message-overlay" id="messageOverlay">
+        <div class="message-container">
+            <p class="message" id="message">Buenas noches Liz 💛</p>
+            <p class="sub-message fade-in">
+                Espero que hayas podido disfrutar de esto y disculpa por utilizar canciones de Morat, pero quería poner un gusto en común de los dos.
+                También tenía pensado no ponerlas debido a lo que dijiste sobre no compartir canciones favoritas o que escuchamos más seguido,
+                sé que no te gusta eso a ti. Sin embargo, decidí dejar las canciones de Morat al final porque están lindas y disculpa nuevamente por eso:/.
+                En cuanto al vídeo con el mensaje "El ataque de las chicas cocodrilo de Morat junto a Hombres G," lo puse porque sé que te encantó
+                y quise agregarle el efecto de lluvia de cocodrilos, ya que eres mi chica cocodrilo :3. Y también para eso era el video que te pedí hace rato
+                para mezclarlo con el fondo y la lluvia de chicas cocodrilos:u. Espero que tengas una bonita noche Liz 💛 Aunque ahorita no me siento muy bien,
+                siempre trataré de que estés bien y no te afecten mis cosas. Te quiero mucho, y posiblemente después de enviarte este archivo, ya me vaya a dormir.
+                Ahorita son las 11:00. Te quiero mucho y que sueñes bonito 💛💚.
+            </p>
+            <button class="close-button" id="closeMessageButton">Cerrar Mensaje</button>
+        </div>
+    </div>
+
+    <script>
+        let currentEffect = 0;
+        let effects = [];
+
+        const elementsContainer = document.getElementById('elements-container');
+        const toggleEffectsButton = document.getElementById('toggleEffectsButton');
+        const startVideoButton = document.getElementById('startVideoButton');
+        const changeVideoButton = document.getElementById('changeVideoButton');
+        const chicaCocodriloButton = document.getElementById('chicaCocodriloButton');
+        const llantoButton = document.getElementById('llantoButton');
+        const videoElement = document.getElementById('video');
+        const messageOverlay = document.getElementById('messageOverlay');
+        const closeMessageButton = document.getElementById('closeMessageButton');
+
+        function toggleEffects() {
+            elementsContainer.innerHTML = '';
+            effects[currentEffect]();
+            currentEffect = (currentEffect + 1) % effects.length;
+        }
+
+        effects.push(() => {
+            for (let i = 0; i < 100; i++) {
+                let redHeart = document.createElement("div");
+                redHeart.className = "element";
+                redHeart.textContent = "Lizeth";
+                redHeart.style.top = Math.random() * 100 + "%";
+                redHeart.style.left = Math.random() * 100 + "%";
+                redHeart.style.animationDelay = Math.random() * 3 + "s";
+                elementsContainer.appendChild(redHeart);
+            }
+        });
+
+        effects.push(() => {
+            for (let i = 0; i < 100; i++) {
+                let redHeart = document.createElement("div");
+                redHeart.className = "element";
+                redHeart.textContent = "Te quiero ♡";
+                redHeart.style.top = Math.random() * 100 + "%";
+                redHeart.style.left = Math.random() * 100 + "%";
+                redHeart.style.animationDelay = Math.random() * 3 + "s";
+                elementsContainer.appendChild(redHeart);
+            }
+        });
+
+        effects.push(() => {
+            for (let i = 0; i < 100; i++) {
+                let redHeart = document.createElement("div");
+                redHeart.className = "element";
+                redHeart.textContent = "Te Amooo ♡";
+                redHeart.style.top = Math.random() * 100 + "%";
+                redHeart.style.left = Math.random() * 100 + "%";
+                redHeart.style.animationDelay = Math.random() * 3 + "s";
+                elementsContainer.appendChild(redHeart);
+            }
+        });
+
+
+
+        effects.push(() => {
+            for (let i = 0; i < 100; i++) {
+                let redHeart = document.createElement("div");
+                redHeart.className = "element";
+                redHeart.textContent = "Te Adoro ♡";
+                redHeart.style.top = Math.random() * 100 + "%";
+                redHeart.style.left = Math.random() * 100 + "%";
+                redHeart.style.animationDelay = Math.random() * 3 + "s";
+                elementsContainer.appendChild(redHeart);
+            }
+        });
+
+        effects.push(() => {
+            for (let i = 0; i < 100; i++) {
+                let name = document.createElement("div");
+                name.className = "element";
+                name.textContent = "💛";
+                name.style.top = Math.random() * 100 + "%";
+                name.style.left = Math.random() * 100 + "%";
+                name.style.animationDelay = Math.random() * 3 + "s";
+                elementsContainer.appendChild(name);
+            }
+        });
+
+        effects.push(() => {
+            for (let i = 0; i < 100; i++) {
+                let greenHeart = document.createElement("div");
+                greenHeart.className = "element";
+                greenHeart.textContent = "💚";
+                greenHeart.style.top = Math.random() * 100 + "%";
+                greenHeart.style.left = Math.random() * 100 + "%";
+                greenHeart.style.animationDelay = Math.random() * 3 + "s";
+                elementsContainer.appendChild(greenHeart);
+            }
+        });
+
+        effects.push(() => {
+            for (let i = 0; i < 100; i++) {
+                let greenHeart = document.createElement("div");
+                greenHeart.className = "element";
+                greenHeart.textContent = "💜";
+                greenHeart.style.top = Math.random() * 100 + "%";
+                greenHeart.style.left = Math.random() * 100 + "%";
+                greenHeart.style.animationDelay = Math.random() * 3 + "s";
+                elementsContainer.appendChild(greenHeart);
+            }
+        });
+
+
+        effects.push(() => {
+            for (let i = 0; i < 100; i++) {
+                let greenHeart = document.createElement("div");
+                greenHeart.className = "element";
+                greenHeart.textContent = "🤍";
+                greenHeart.style.top = Math.random() * 100 + "%";
+                greenHeart.style.left = Math.random() * 100 + "%";
+                greenHeart.style.animationDelay = Math.random() * 3 + "s";
+                elementsContainer.appendChild(greenHeart);
+            }
+        });
+
+        effects.push(() => {
+            for (let i = 0; i < 100; i++) {
+                let redHeart = document.createElement("div");
+                redHeart.className = "element";
+                redHeart.textContent = " Mi pequeña 🦗";
+                redHeart.style.top = Math.random() * 100 + "%";
+                redHeart.style.left = Math.random() * 100 + "%";
+                redHeart.style.animationDelay = Math.random() * 3 + "s";
+                elementsContainer.appendChild(redHeart);
+            }
+        });
+
+        effects.push(() => {
+            for (let i = 0; i < 100; i++) {
+                let redHeart = document.createElement("div");
+                redHeart.className = "element";
+                redHeart.textContent = "🦗";
+                redHeart.style.top = Math.random() * 100 + "%";
+                redHeart.style.left = Math.random() * 100 + "%";
+                redHeart.style.animationDelay = Math.random() * 3 + "s";
+                elementsContainer.appendChild(redHeart);
+            }
+        });
+
+        effects.push(() => {
+            for (let i = 0; i < 100; i++) {
+                let star = document.createElement("div");
+                star.className = "element";
+                star.textContent = "★";
+                star.style.top = Math.random() * 100 + "%";
+                star.style.left = Math.random() * 100 + "%";
+                star.style.animationDelay = Math.random() * 3 + "s";
+                elementsContainer.appendChild(star);
+            }
+        });
+
+        toggleEffectsButton.addEventListener('click', toggleEffects);
+
+        startVideoButton.addEventListener('click', () => {
+            elementsContainer.innerHTML = '';
+            for (let i = 0; i < 100; i++) {
+                let redHeart = document.createElement("div");
+                redHeart.className = "element";
+                redHeart.textContent = "Yellow";
+                redHeart.style.top = Math.random() * 100 + "%";
+                redHeart.style.left = Math.random() * 100 + "%";
+                redHeart.style.animationDelay = Math.random() * 3 + "s";
+                elementsContainer.appendChild(redHeart);
+            }
+            videoElement.play();
+        });
+
+        changeVideoButton.addEventListener('click', () => {
+    const videoSources = [
+    
+        "Simple.mp4",
+        "Morat.mp4",
+        "Morat1.mp4",
+        "Morat2.mp4",
+        "Morat3.mp4"
+    ];
+
+    const currentSource = videoElement.src.split('/').pop();
+    let newIndex = videoSources.indexOf(currentSource) + 1;
+
+    if (newIndex >= videoSources.length) {
+        newIndex = 0;
+    }
+
+    videoElement.src = videoSources[newIndex];
+    videoElement.play();
+});
+        chicaCocodriloButton.addEventListener('click', () => {
+            elementsContainer.innerHTML = '';
+            for (let i = 0; i < 100; i++) {
+                let cocodrilo = document.createElement("div");
+                cocodrilo.className = "element";
+                cocodrilo.textContent = "🐊";
+                cocodrilo.style.top = Math.random() * 100 + "%";
+                cocodrilo.style.left = Math.random() * 100 + "%";
+                cocodrilo.style.animationDelay = Math.random() * 3 + "s";
+                elementsContainer.appendChild(cocodrilo);
+            }
+        });
+
+        llantoButton.addEventListener('click', () => {
+            elementsContainer.innerHTML = '';
+            for (let i = 0; i < 100; i++) {
+                let llanto = document.createElement("div");
+                llanto.className = "element";
+                llanto.textContent = "😭";
+                llanto.style.top = Math.random() * 100 + "%";
+                llanto.style.left = Math.random() * 100 + "%";
+                llanto.style.animationDelay = Math.random() * 3 + "s";
+                elementsContainer.appendChild(llanto);
+            }
+        });
+
+        videoElement.addEventListener('ended', () => {
+            if (videoElement.src.includes("Morat3.mp4")) {
+                messageOverlay.style.display = 'flex';
+            }
+        });
+
+        closeMessageButton.addEventListener('click', () => {
+            messageOverlay.style.display = 'none';
+        });
+    </script>
+</body>
+</html>
