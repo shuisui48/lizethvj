@@ -35,8 +35,7 @@
 
         textarea {
             width: 100%;
-            max-height: 150px;
-            resize: vertical;
+            height: 100px;
             margin-bottom: 10px;
             padding: 5px;
         }
@@ -71,48 +70,95 @@
             align-items: center;
         }
 
-        .completed {
-            text-decoration: line-through;
-            color: #6c757d;
+        .note-item.completed {
+            background-color: #d4edda;
         }
 
-        .note-actions {
-            display: flex;
-            gap: 10px;
+        .note-item span {
+            margin-right: 10px;
         }
 
-        .note-content {
+        .note-item .note-content {
             flex: 1;
-            cursor: pointer;
+            white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            white-space: nowrap;
         }
 
-        .note-details {
-            width: 100%;
-            max-height: 80vh;
-            overflow: auto;
-            padding: 20px;
-            background-color: rgba(255, 255, 255, 0.9);
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 9999;
+        .note-item .note-actions {
+            font-size: 18px;
+            display: flex;
+            gap: 5px;
+        }
+
+        .action-btn {
+            display: inline-block;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 3px 8px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .action-btn:hover {
+            background-color: #0056b3;
+        }
+
+        .action-btn.delete {
+            background-color: #dc3545;
+        }
+
+        .action-btn.marked {
+            background-color: #28a745;
+        }
+
+        .action-btn.edit {
+            background-color: #ffc107;
+        }
+
+        .view-more-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 3px 8px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .view-more-btn:hover {
+            background-color: #0056b3;
+        }
+
+        .modal {
             display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4);
         }
 
-        .close-btn {
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 70%;
+            border-radius: 10px;
+            position: relative;
+        }
+
+        .close-button {
             position: absolute;
             top: 10px;
             right: 10px;
-            background-color: transparent;
-            border: none;
+            font-size: 20px;
+            font-weight: bold;
             cursor: pointer;
-            font-size: 18px;
         }
     </style>
     <title>Página con Notas y Imagen de Fondo</title>
@@ -127,13 +173,19 @@
             </div>
         </div>
         <div class="notes-container" id="notesListContainer" style="display: none;">
-            <h2>Notas Guardadas</h2>
+            <h2>Notas Pendientes</h2>
             <ul class="note-list" id="noteList"></ul>
         </div>
+        <div class="notes-container" id="completedNotesContainer" style="display: none;">
+            <h2>Notas Realizadas</h2>
+            <ul class="note-list" id="completedNoteList"></ul>
+        </div>
     </div>
-    <div class="note-details" id="noteDetails">
-        <button class="close-btn">×</button>
-        <div class="note-content" id="noteDetailsContent"></div>
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <p class="modal-text"></p>
+        </div>
     </div>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
@@ -141,100 +193,115 @@
             const showNotesButton = document.getElementById("showNotesBtn");
             const noteInput = document.getElementById("noteInput");
             const notesListContainer = document.getElementById("notesListContainer");
+            const completedNotesContainer = document.getElementById("completedNotesContainer");
             const noteList = document.getElementById("noteList");
-            const noteDetails = document.getElementById("noteDetails");
-            const noteDetailsContent = document.getElementById("noteDetailsContent");
+            const completedNoteList = document.getElementById("completedNoteList");
+            const modal = document.getElementById("modal");
+            const modalContent = document.querySelector(".modal-content");
+            const closeModalButton = document.querySelector(".close-button");
+
+            const loadNotes = () => {
+                const savedNotes = JSON.parse(localStorage.getItem("notes")) || [];
+                const completedNotes = JSON.parse(localStorage.getItem("completedNotes")) || [];
+                noteList.innerHTML = "";
+                completedNoteList.innerHTML = "";
+                savedNotes.forEach(function (note, index) {
+                    const noteElement = document.createElement("li");
+                    noteElement.className = "note-item";
+                    noteElement.innerHTML = `
+                        <span class="note-content">${note}</span>
+                        <span class="note-actions">
+                            <button class="action-btn marked">&#10004;</button>
+                            <button class="action-btn edit">&#9998;</button>
+                            <button class="action-btn delete">&#10060;</button>
+                            <button class="view-more-btn">Ver más</button>
+                        </span>
+                    `;
+                    noteList.appendChild(noteElement);
+
+                    const noteContent = noteElement.querySelector(".note-content");
+                    const markButton = noteElement.querySelector(".action-btn.marked");
+                    const editButton = noteElement.querySelector(".action-btn.edit");
+                    const deleteButton = noteElement.querySelector(".action-btn.delete");
+                    const viewMoreButton = noteElement.querySelector(".view-more-btn");
+
+                    markButton.addEventListener("click", function () {
+                        noteContent.classList.toggle("completed");
+                        if (noteContent.classList.contains("completed")) {
+                            completedNotes.push(note);
+                            savedNotes.splice(index, 1);
+                            localStorage.setItem("completedNotes", JSON.stringify(completedNotes));
+                            localStorage.setItem("notes", JSON.stringify(savedNotes));
+                            loadNotes();
+                        }
+                    });
+
+                    editButton.addEventListener("click", function () {
+                        const newText = prompt("Editar nota:", note);
+                        if (newText !== null) {
+                            savedNotes[index] = newText;
+                            localStorage.setItem("notes", JSON.stringify(savedNotes));
+                            noteContent.textContent = newText;
+                        }
+                    });
+
+                    deleteButton.addEventListener("click", function () {
+                        savedNotes.splice(index, 1);
+                        localStorage.setItem("notes", JSON.stringify(savedNotes));
+                        loadNotes();
+                    });
+
+                    viewMoreButton.addEventListener("click", function () {
+                        modalContent.querySelector(".modal-text").textContent = note;
+                        modal.style.display = "block";
+                    });
+                });
+
+                completedNotes.forEach(function (note) {
+                    const completedNoteElement = document.createElement("li");
+                    completedNoteElement.className = "note-item completed";
+                    completedNoteElement.innerHTML = `
+                        <span class="note-content">${note}</span>
+                        <span class="note-actions">
+                            <button class="action-btn delete">&#10060;</button>
+                        </span>
+                    `;
+                    completedNoteList.appendChild(completedNoteElement);
+
+                    const deleteButton = completedNoteElement.querySelector(".action-btn.delete");
+
+                    deleteButton.addEventListener("click", function () {
+                        completedNotes.splice(completedNotes.indexOf(note), 1);
+                        localStorage.setItem("completedNotes", JSON.stringify(completedNotes));
+                        loadNotes();
+                    });
+                });
+            };
 
             addNoteButton.addEventListener("click", function () {
                 const noteText = noteInput.value.trim();
                 if (noteText !== "") {
-                    const noteElement = document.createElement("li");
-                    noteElement.className = "note-item";
-                    noteElement.innerHTML = `
-                        <div class="note-content">${noteText}</div>
-                        <div class="note-actions">
-                            <button class="btn complete-btn">✔</button>
-                            <button class="btn edit-btn">✎</button>
-                            <button class="btn delete-btn">✖</button>
-                        </div>
-                    `;
-                    noteList.appendChild(noteElement);
-
-                    // Guardar nota en el almacenamiento local
                     const savedNotes = JSON.parse(localStorage.getItem("notes")) || [];
-                    savedNotes.push({ text: noteText, completed: false });
+                    savedNotes.push(noteText);
                     localStorage.setItem("notes", JSON.stringify(savedNotes));
-
                     noteInput.value = "";
+                    loadNotes();
                 }
             });
 
             showNotesButton.addEventListener("click", function () {
                 notesListContainer.style.display = "block";
-
-                // Mostrar las notas guardadas desde el almacenamiento local
-                const savedNotes = JSON.parse(localStorage.getItem("notes")) || [];
-                noteList.innerHTML = "";
-                savedNotes.forEach(function (note, index) {
-                    const noteElement = document.createElement("li");
-                    noteElement.className = "note-item";
-                    noteElement.innerHTML = `
-                        <div class="note-content ${note.completed ? 'completed' : ''}" data-index="${index}">${note.text}</div>
-                        <div class="note-actions">
-                            <button class="btn complete-btn">✔</button>
-                            <button class="btn edit-btn">✎</button>
-                            <button class="btn delete-btn">✖</button>
-                        </div>
-                    `;
-                    noteList.appendChild(noteElement);
-                });
+                completedNotesContainer.style.display = "block";
+                loadNotes();
             });
 
-            noteList.addEventListener("click", function (event) {
-                const target = event.target;
-
-                if (target.classList.contains("complete-btn")) {
-                    const index = parseInt(target.parentElement.previousElementSibling.dataset.index);
-                    const savedNotes = JSON.parse(localStorage.getItem("notes")) || [];
-                    savedNotes[index].completed = !savedNotes[index].completed;
-                    localStorage.setItem("notes", JSON.stringify(savedNotes));
-                    showNotesButton.click(); // Actualizar la lista de notas
-                }
-
-                if (target.classList.contains("edit-btn")) {
-                    const contentElement = target.parentElement.parentElement.querySelector(".note-content");
-                    const index = parseInt(contentElement.dataset.index);
-                    const savedNotes = JSON.parse(localStorage.getItem("notes")) || [];
-                    const newText = prompt("Editar nota:", savedNotes[index].text);
-                    if (newText !== null) {
-                        savedNotes[index].text = newText;
-                        localStorage.setItem("notes", JSON.stringify(savedNotes));
-                        showNotesButton.click(); // Actualizar la lista de notas
-                    }
-                }
-
-                if (target.classList.contains("delete-btn")) {
-                    const index = parseInt(target.parentElement.previousElementSibling.dataset.index);
-                    const savedNotes = JSON.parse(localStorage.getItem("notes")) || [];
-                    savedNotes.splice(index, 1);
-                    localStorage.setItem("notes", JSON.stringify(savedNotes));
-                    showNotesButton.click(); // Actualizar la lista de notas
-                }
-
-                if (target.classList.contains("note-content")) {
-                    const index = parseInt(target.dataset.index);
-                    const savedNotes = JSON.parse(localStorage.getItem("notes")) || [];
-                    const noteText = savedNotes[index].text;
-                    noteDetailsContent.textContent = noteText;
-                    noteDetails.style.display = "block";
-                }
+            closeModalButton.addEventListener("click", function () {
+                modal.style.display = "none";
             });
 
-            noteDetails.addEventListener("click", function (event) {
-                const target = event.target;
-
-                if (target.classList.contains("close-btn")) {
-                    noteDetails.style.display = "none";
+            window.addEventListener("click", function (event) {
+                if (event.target === modal) {
+                    modal.style.display = "none";
                 }
             });
         });
